@@ -6,7 +6,8 @@ const fs = require('fs'),
 
 const dist = 'dist/'
 
-const uri = 'https://www.toushikiso.com/rakuten/nyukin.html'
+const uri =
+'https://www.toushikiso.com/indexfund/indexfund-daiwa.html'
 const rootPath = 'https://www.toushikiso.com'
 const mainPath = '/'+uri.split('/')[uri.split('/').length-2]+'/'
 const subPath  = uri.split('/')[uri.split('/').length-1].replace(/\.html/g,'').trim()

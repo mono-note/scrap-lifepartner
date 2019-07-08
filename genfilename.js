@@ -10,20 +10,22 @@ if (!fs.existsSync(htmlDist)) {
   fs.mkdir(htmlDist,function(){});
 }
 
-let uri =[
-  'https://www.toushikiso.com/rakuten/rakuten_return.html',
-  'https://www.toushikiso.com/rakuten/rakuten-bank.html',
-  'https://www.toushikiso.com/rakuten/sell.html',
-  'https://www.toushikiso.com/rakuten/shukin.html',
-  'https://www.toushikiso.com/rakuten/spotbuy.html',
-  'https://www.toushikiso.com/rakuten/tumitatebuy.html',
-  'https://www.toushikiso.com/rakuten/kouza.html',
-  'https://www.toushikiso.com/rakuten/nyukin.html',
-  'https://www.toushikiso.com/rakuten/index.html',
+let urllll =[
+  'https://www.toushikiso.com/indexfund/indexfund-daiwa.html',
+  'https://www.toushikiso.com/indexfund/index-e.html',
+  'https://www.toushikiso.com/indexfund/indexfund-daiwa_ifree.html',
+  'https://www.toushikiso.com/indexfund/i-mizuho.html',
+  'https://www.toushikiso.com/indexfund/indexfund-smt.html',
+  'https://www.toushikiso.com/indexfund/indexfund-smam-dc.html',
+  'https://www.toushikiso.com/indexfund/indexfund-fundsi.html',
+  'https://www.toushikiso.com/indexfund/indexfund-exei.html',
+  'https://www.toushikiso.com/indexfund/nissay-indexfund.html',
+  'https://www.toushikiso.com/indexfund/indexfund-emaxis.html',
+  'https://www.toushikiso.com/indexfund/indexfund-tawara.html',
 ]
 
 
-uri.forEach((v)=>{
+urllll.forEach((v)=>{
   fs.writeFile(htmlDist+'/'+v.match(/[^\/]+$/)[0], '', function (err) {
     if (err) throw err;
   })
