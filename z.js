@@ -1,25 +1,25 @@
-let fs = require('fs'),
+const fs = require('fs'),
   cheerio = require('cheerio'),
   he = require('he'),
   request = require('request'),
   rimraf = require('rimraf')
 
-let fname = 'index.html'
-let dist = 'dist/'
+const dist = 'dist/'
 
-let uri = 'https://www.toushikiso.com/sbi/spoturi.html'
-let rootPath = 'https://www.toushikiso.com'
-let mainPath = '/sbi/'
-let subPath  = 'spoturi'
-
+const uri = 'https://www.toushikiso.com/rakuten/nyukin.html'
+const rootPath = 'https://www.toushikiso.com'
+const mainPath = '/'+uri.split('/')[uri.split('/').length-2]+'/'
+const subPath  = uri.split('/')[uri.split('/').length-1].replace(/\.html/g,'').trim()
+const filename = uri.match(/[^\/]+$/)[0]
 if (!fs.existsSync(dist)) {
   fs.mkdirSync(dist);
+}else{
+  rimraf.sync(dist);
+  fs.mkdir(dist,function(){});
 }
-// fs.readFile(fname, 'utf8', function (err, contents) {
-//   doCheerio(contents)
-// });
 
-let head =''
+
+let head =[]
 let nav =[]
 request(uri, function (error, response, html) {
   if (!error && response.statusCode == 200) {
@@ -31,21 +31,40 @@ var getHead = function(html){
   let title = $('title').text();
   let keywords = $('meta[name="keywords"]').attr('content')
   let description = $('meta[name="description"]').attr('content')
+  head.push({
+    title:title,
+    keywords:keywords,
+    description:description
+  })
   $('#pre-next-nav').children().each( function(){
     nav.push(cleanHTML($(this).html()).replace(/←/g,'').replace(/→/g,'').replace(/\n/g,'').replace(/\.\.\//g,'/'));
   })
-  fs.readFile('head.html', 'utf8', function (err, contents) {
-    head = contents.replace(/<!--TITLE-->/g,title).replace(/<!--DESC-->/g,description).replace(/<!--KEYw-->/g,keywords);
 
-   doCheerio(cleanHTML($('article').html()))
-  });
+  doCheerio(cleanHTML($('article').html()))
+
 }
 var doCheerio = function (html) {
   const $ = cheerio.load(html);
 
   // $('nav').remove()
 
-  let breadcrumb = '<li class="item"><span>'+$('nav ol li').last().text()+'</span></li>'
+//   <li class="item"><a href="/">ホーム</a></li>
+// <li class="item"><a href="/shoken/sbi.html">SBI証券</a></li>
+// <li class="item"><a href="/sbi/index.html">SBI証券の初心者取引ガイド</a></li>
+// <li class="item"><span>投資信託を売る（売却）</span></li>
+  let breadcrumb =''
+  let bclen =  $('nav ol').children().length
+  $('nav ol').children().each(function(i){
+    if(i == 0){}
+    else if(i == bclen-1){
+      breadcrumb += '<li class="item"><span>' + $(this).html().cleanHTML().replace(/\.\.\//g, '/') + '</span></li>\n'
+    }
+    else {
+      breadcrumb += '<li class="item">' + $(this).html().cleanHTML().replace(/\.\.\//g, '/').replace(/\"index\.html\"/g,'"'+mainPath+'"') + '</li>\n'
+    }
+  })
+  // let breadcrumb = '<li class="item"><span>'+$('nav ol li').last().text()+'</span></li>'
+
   $('nav').remove();
   $('.bodyInsert').remove();
   let orderImg = 0
@@ -57,7 +76,7 @@ var doCheerio = function (html) {
     }
     if ($(this).is('table')) {
       $(this).removeAttr('id').removeAttr('class')
-      $(this).addClass('table-cmn-01 w-sp-700')
+      $(this).addClass('table-cmn-01')
       const wraptable1 = '<div class="table-cmn-scroll"></div>'
       const wraptable2 = '<div class="table-cmn-scroll-in"></div>'
       $(this).wrap(wraptable1).wrap(wraptable2)
@@ -84,7 +103,12 @@ var doCheerio = function (html) {
       }
     }
     if ($(this).is('img')) {
-      if (rootPath + mainPath + $(this).attr('src') != 'https://www.toushikiso.com/sbi/images/yaji.gif') {
+      if (rootPath + mainPath + $(this).attr('src') == 'https://www.toushikiso.com'+mainPath+'images/yaji.gif') {
+        // <div class="next_arrow"><img src="images/yaji.gif"></div>
+        const arrow_down = '<figure><img src="/common/img/ico_arrow_down.png" class="icon-cmn" alt="下向き矢印"></figure>'
+        $(this).parent().replaceWith(arrow_down);
+      }
+      else{
         orderImg++
         // let src =  mainPath+$(this).attr('src').replace(/images\//g,'images/img_')
         let newSRC = mainPath + 'images/img_' + mainPath.replace(/\//g, '') + '-' + subPath + '_' + ("0" + orderImg).slice(-2) + '.'
@@ -100,9 +124,9 @@ var doCheerio = function (html) {
       }
     }
   })
-
   let data = cleanHTML($.html())
-  let txt = data
+
+  let txt = data.replace(/<html><head><\/head><body>/g,'').replace(/<\/body><\/html>/g,'')
                 .replace(/class="font-bold"/g,'class="fw-b"')
                 .replace(/class="font-redbold"/g,'class="fw-b txt-red"')
                 .replace(/class="headline_sub2"/g,'class="ttl-cmn-h2"')
@@ -127,22 +151,31 @@ var doCheerio = function (html) {
       return '<li class="link next">'+v+'</li>'
     }
   })
-  let tbody = head+
-  `\n<!--////////////////////////////////-->\n`+breadcrumb+
-  `\n<!--////////////////////////////////-->\n`+txt+
-  `\n<!--////////////////////////////////-->\n`+nav.join('\n')
+  // let tbody = head+
+  // `\n<!--////////////////////////////////-->\n`+breadcrumb+
+  // `\n<!--////////////////////////////////-->\n`+txt+
+  // `\n<!--////////////////////////////////-->\n`+nav.join('\n')
 
-  writeHTML(cleanHTML(tbody))
+  let contents = fs.readFileSync('template.html', 'utf8');
+
+  let txtbody = contents.replace(/<!--TITLE-->/g, head[0].title).replace(/<!--DESC-->/g, head[0].description).replace(/<!--KEYw-->/g, head[0].keywords)
+      .replace(/<!--NAVbreadcrumb-->/g, breadcrumb)
+      .replace(/<!--CONTENTS-->/g, txt)
+      .replace(/<!--NAVIGATOR-->/g, nav.join('\n'))
+  writeHTML(cleanHTML(txtbody))
 
 }
 
-let writeHTML  =(txtbody='')=>{
-
-  fs.writeFile('output.html', txtbody, function (err) {
+let writeHTML = (txtbody = '') => {
+  fs.writeFile(filename, txtbody, function (err) {
     if (err) throw err;
   })
 }
 
+
+String.prototype.cleanHTML = function () {
+  return he.decode(this.replace(/\t/g, "").replace(/<br>/g, '<br>\n').replace(/  /g, "").replace(/\n\n/g, '\n'))
+};
 
 var cleanHTML = function (str) {
   return (str == null) ? false : he.decode(str.replace(/\t/g, "").replace(/<br>/g, '<br>\n').replace(/  /g, "").replace(/\n\n/g, '\n'))

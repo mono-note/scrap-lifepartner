@@ -64,3 +64,6 @@ typings/
 
 #
 head.html
+output.html
+dist/
+*.html
