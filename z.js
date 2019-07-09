@@ -3,8 +3,7 @@ const fs = require('fs'),
   he = require('he'),
   request = require('request'),
   rimraf = require('rimraf'),
-  http = require('https')
-
+  requestp = require('request-promise');
 const dist = 'dist/'
 const  htmlDist ='html/'
 if (!fs.existsSync(dist)) {
@@ -21,20 +20,26 @@ if (!fs.existsSync(htmlDist)) {
 }
 
 let urls =[
-  'https://www.toushikiso.com/indexfund/indexfund-daiwa.html',
-  'https://www.toushikiso.com/indexfund/index-e.html',
-  'https://www.toushikiso.com/indexfund/indexfund-daiwa_ifree.html',
-  'https://www.toushikiso.com/indexfund/i-mizuho.html',
-  'https://www.toushikiso.com/indexfund/indexfund-smt.html',
-  'https://www.toushikiso.com/indexfund/indexfund-smam-dc.html',
-  'https://www.toushikiso.com/indexfund/indexfund-fundsi.html',
-  'https://www.toushikiso.com/indexfund/indexfund-exei.html',
-  'https://www.toushikiso.com/indexfund/nissay-indexfund.html',
-  'https://www.toushikiso.com/indexfund/indexfund-emaxis.html',
-  'https://www.toushikiso.com/indexfund/indexfund-tawara.html',
+  'https://www.toushikiso.com/kobetu/ranking_net_100.html',
+  'https://www.toushikiso.com/kobetu/ranking_net_tumi-nisa.html',
+  'https://www.toushikiso.com/kobetu/ranking_net_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_amount_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_amount_100.html',
+  'https://www.toushikiso.com/kobetu/ranking_fee_100.html',
+  'https://www.toushikiso.com/kobetu/ranking_amount_tumi-nisa.html',
+  'https://www.toushikiso.com/kobetu/ranking_fee_tumi-nisa.html',
+  'https://www.toushikiso.com/kobetu/ranking_fee_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_total_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_total_100.html',
+  'https://www.toushikiso.com/kobetu/ranking_tumitate_100.html',
+  'https://www.toushikiso.com/kobetu/ranking_total_tumi-nisa.html',
+  'https://www.toushikiso.com/kobetu/ranking_tumitate_tumi-nisa.html',
+  'https://www.toushikiso.com/kobetu/ranking_tumitate_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_yield_noload.html',
+  'https://www.toushikiso.com/kobetu/ranking_yield_100.html',
 ]
 
-const requestp = require('request-promise');
+
 // const urls = ["http://www.google.com", "http://www.example.com"];
 const promises = urls.map(url => requestp(url));
 
