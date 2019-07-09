@@ -2,36 +2,74 @@ const fs = require('fs'),
   cheerio = require('cheerio'),
   he = require('he'),
   request = require('request'),
-  rimraf = require('rimraf')
+  rimraf = require('rimraf'),
+  http = require('https')
 
 const dist = 'dist/'
-
-const uri =
-'https://www.toushikiso.com/indexfund/indexfund-daiwa.html'
-const rootPath = 'https://www.toushikiso.com'
-const mainPath = '/'+uri.split('/')[uri.split('/').length-2]+'/'
-const subPath  = uri.split('/')[uri.split('/').length-1].replace(/\.html/g,'').trim()
-const filename = uri.match(/[^\/]+$/)[0]
+const  htmlDist ='html/'
 if (!fs.existsSync(dist)) {
   fs.mkdirSync(dist);
 }else{
   rimraf.sync(dist);
   fs.mkdir(dist,function(){});
 }
+if (!fs.existsSync(htmlDist)) {
+  fs.mkdirSync(htmlDist);
+}else{
+  rimraf.sync(htmlDist);
+  fs.mkdir(htmlDist,function(){});
+}
 
+let urls =[
+  'https://www.toushikiso.com/indexfund/indexfund-daiwa.html',
+  'https://www.toushikiso.com/indexfund/index-e.html',
+  'https://www.toushikiso.com/indexfund/indexfund-daiwa_ifree.html',
+  'https://www.toushikiso.com/indexfund/i-mizuho.html',
+  'https://www.toushikiso.com/indexfund/indexfund-smt.html',
+  'https://www.toushikiso.com/indexfund/indexfund-smam-dc.html',
+  'https://www.toushikiso.com/indexfund/indexfund-fundsi.html',
+  'https://www.toushikiso.com/indexfund/indexfund-exei.html',
+  'https://www.toushikiso.com/indexfund/nissay-indexfund.html',
+  'https://www.toushikiso.com/indexfund/indexfund-emaxis.html',
+  'https://www.toushikiso.com/indexfund/indexfund-tawara.html',
+]
 
-let head =[]
-let nav =[]
-request(uri, function (error, response, html) {
-  if (!error && response.statusCode == 200) {
-    getHead(html)
-  }
-})
-var getHead = function(html){
+const requestp = require('request-promise');
+// const urls = ["http://www.google.com", "http://www.example.com"];
+const promises = urls.map(url => requestp(url));
+
+Promise.all(promises).then((data) => {
+  data.forEach((valHTML,idx)=>{
+      let uri= urls[idx]
+      allPath ={}
+      allPath.rootPath = 'https://www.toushikiso.com'
+      allPath.mainPath = '/' + uri.split('/')[uri.split('/').length - 2] + '/'
+      allPath.subPath = uri.split('/')[uri.split('/').length - 1].replace(/\.html/g, '').trim()
+      allPath.filename = uri.match(/[^\/]+$/)[0]
+      getHead(valHTML,allPath)
+  })
+});
+
+// urls.forEach((uri) => {
+
+//   // let uri = 'https://www.toushikiso.com/indexfund/indexfund-daiwa.html'
+//   allPath ={}
+//   allPath.rootPath = 'https://www.toushikiso.com'
+//   allPath.mainPath = '/' + uri.split('/')[uri.split('/').length - 2] + '/'
+//   allPath.subPath = uri.split('/')[uri.split('/').length - 1].replace(/\.html/g, '').trim()
+//   allPath.filename = uri.match(/[^\/]+$/)[0]
+//   request(uri, function (error, response, html) {
+//     if (!error && response.statusCode == 200) {
+//       getHead(html,allPath)
+//     }
+//   })
+// })
+var getHead = function(html,path){
   const $ = cheerio.load(html);
   let title = $('title').text();
   let keywords = $('meta[name="keywords"]').attr('content')
   let description = $('meta[name="description"]').attr('content')
+  let head =[],nav=[]
   head.push({
     title:title,
     keywords:keywords,
@@ -40,19 +78,12 @@ var getHead = function(html){
   $('#pre-next-nav').children().each( function(){
     nav.push(cleanHTML($(this).html()).replace(/←/g,'').replace(/→/g,'').replace(/\n/g,'').replace(/\.\.\//g,'/'));
   })
-
-  doCheerio(cleanHTML($('article').html()))
+  doCheerio(cleanHTML($('article').html()),head,nav,path)
 
 }
-var doCheerio = function (html) {
+var doCheerio = function (html,head,nav,path) {
   const $ = cheerio.load(html);
 
-  // $('nav').remove()
-
-//   <li class="item"><a href="/">ホーム</a></li>
-// <li class="item"><a href="/shoken/sbi.html">SBI証券</a></li>
-// <li class="item"><a href="/sbi/index.html">SBI証券の初心者取引ガイド</a></li>
-// <li class="item"><span>投資信託を売る（売却）</span></li>
   let breadcrumb =''
   let bclen =  $('nav ol').children().length
   $('nav ol').children().each(function(i){
@@ -61,7 +92,7 @@ var doCheerio = function (html) {
       breadcrumb += '<li class="item"><span>' + $(this).html().cleanHTML().replace(/\.\.\//g, '/') + '</span></li>\n'
     }
     else {
-      breadcrumb += '<li class="item">' + $(this).html().cleanHTML().replace(/\.\.\//g, '/').replace(/\"index\.html\"/g,'"'+mainPath+'"') + '</li>\n'
+      breadcrumb += '<li class="item">' + $(this).html().cleanHTML().replace(/\.\.\//g, '/').replace(/\"index\.html\"/g,'"'+path.mainPath+'"') + '</li>\n'
     }
   })
   // let breadcrumb = '<li class="item"><span>'+$('nav ol li').last().text()+'</span></li>'
@@ -104,7 +135,7 @@ var doCheerio = function (html) {
       }
     }
     if ($(this).is('img')) {
-      if (rootPath + mainPath + $(this).attr('src') == 'https://www.toushikiso.com'+mainPath+'images/yaji.gif') {
+      if (path.rootPath + path.mainPath + $(this).attr('src') == 'https://www.toushikiso.com'+path.mainPath+'images/yaji.gif') {
         // <div class="next_arrow"><img src="images/yaji.gif"></div>
         const arrow_down = '<figure><img src="/common/img/ico_arrow_down.png" class="icon-cmn" alt="下向き矢印"></figure>'
         $(this).parent().replaceWith(arrow_down);
@@ -112,12 +143,12 @@ var doCheerio = function (html) {
       else{
         orderImg++
         // let src =  mainPath+$(this).attr('src').replace(/images\//g,'images/img_')
-        let newSRC = mainPath + 'images/img_' + mainPath.replace(/\//g, '') + '-' + subPath + '_' + ("0" + orderImg).slice(-2) + '.'
+        let newSRC = path.mainPath + 'images/img_' + path.mainPath.replace(/\//g, '') + '-' + path.subPath + '_' + ("0" + orderImg).slice(-2) + '.'
 
         src = $(this).attr('src').replace(/([/|.|\w|\s|-])*\./g, newSRC)
 
         let distImg =  './dist/' + src.match(/([^\/]+$)/g)[0]
-        download(rootPath + mainPath + $(this).attr('src'), distImg, function () {})
+        download(path.rootPath + path.mainPath + $(this).attr('src'), distImg, function () {})
 
         $(this).attr('src', src)
         let img = '<figure>' + $(this) + ' </figure>'
@@ -163,12 +194,13 @@ var doCheerio = function (html) {
       .replace(/<!--NAVbreadcrumb-->/g, breadcrumb)
       .replace(/<!--CONTENTS-->/g, txt)
       .replace(/<!--NAVIGATOR-->/g, nav.join('\n'))
-  writeHTML(cleanHTML(txtbody))
-
+  writeHTML(cleanHTML(txtbody),path.filename)
+  console.log(path.filename);
 }
 
-let writeHTML = (txtbody = '') => {
-  fs.writeFile(filename, txtbody, function (err) {
+
+let writeHTML = (txtbody = '',filename) => {
+  fs.writeFile(htmlDist+filename, txtbody, function (err) {
     if (err) throw err;
   })
 }
